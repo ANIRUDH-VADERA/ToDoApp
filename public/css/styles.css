@@ -1,0 +1,493 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter&family=League+Spartan:wght@300&family=Montserrat&family=Roboto&display=swap');
+
+
+
+/* NAVBAR */
+
+.navbarHeading{
+    width: 55px;
+    font-family: 'Inter', sans-serif;
+    font-style: normal;
+    font-weight: 900;
+    font-size: 16px;
+    line-height: 24px;
+    text-transform: uppercase;
+    color: #111827;
+}
+
+.inputSearch{
+    width: 30vw;
+    font-family: 'Inter';
+    font-style: normal;
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 20px;
+    color: #6B7280;
+}
+
+.navbar img{
+    margin-left: 20px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+}
+
+nav{
+    padding-left: 30px !important;
+    padding-right: 30px !important;
+    border-bottom: 1px solid #E5E7EB;
+}
+
+.modal-backdrop {
+    z-index: 1000;
+}
+
+.modal label{
+    font-family: 'Inter', sans-serif;
+    font-style: normal;
+    font-weight: 500;
+    font-size: 14px;
+    line-height: 20px;
+    color: #374151;
+}
+
+.btn-group{
+    display: block;
+}
+
+.modal-footer{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-footer button {
+    width: 45%;
+}
+
+/* SIDEBAR LEFT  */
+
+.home .left{
+    width: 25vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.byDate{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.left i {
+    margin-right: 10px;
+    color: #374151;
+}
+
+.left span{
+    margin-left: auto;
+}
+
+.left button{
+    margin-bottom: 15px;
+    width: 18vw;
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    border: none;
+    background-color : transparent;
+    font-family: 'Inter', sans-serif;
+    font-style: normal;
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 20px;
+    color: #374151;
+    padding: 12px;
+    border-radius: 8px;
+}
+
+.left button:hover{
+    font-weight: 700;
+    color: #1D4ED8;
+    background-color: #EFF6FF;
+}
+.left button:hover i{
+    color: #1D4ED8;
+}
+
+
+.line{
+    width: 100%; 
+    display: flex;
+    justify-content: center;
+}
+
+.line hr{
+    width: 80%;
+    border-top: 1px solid #E5E7EB;
+}
+
+
+/* HOME */
+
+.home{
+    overflow: hidden;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.home .right{
+    width: 75vw;
+    height: 100vh;
+    padding-top: 19vh;
+    padding-left: 4vw;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+}
+
+.home h1{
+    font-family: 'Inter', sans-serif;
+    font-style: normal;
+    font-weight: 700;
+    font-size: 24px;
+    line-height: 32px;
+    color: #111827;
+    margin-bottom: 20px;
+}
+
+#addtaskhome{
+    margin-bottom: 20px;
+    width: 35vw;
+}
+
+.toDo{
+    width: 24px;
+    height: 24px;
+    margin-right: 20px;
+}
+
+.form-check{
+    margin-top: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.mainForm{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+
+
+.fa-trash{
+    margin-left: 15px;
+    cursor: pointer;
+}
+
+.fa-trash:hover{
+    transform: scale(1.2);
+    transition: transform 0.5s ease-in-out;
+}
+
+.form-check label{
+    font-family: 'Inter', sans-serif;
+    font-style: normal;
+    font-weight: 500;
+    font-size: 14px;
+    line-height: 20px;
+    color: #000000;
+}
+
+
+.form-check span{
+    display: block;
+}
+
+.today{
+    color: #2563EB;
+}
+.tommorow{
+    color: purple;
+}
+.yesterday{
+    color: #DC2626;
+}
+
+.date{
+    color: pink;
+}
+
+.trashButton{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border: none;
+    background-color : transparent;
+}
+
+/* Media Queries for responsive design */
+
+@media screen and (max-width: 620px) {
+    /* NAVBAR */
+.navbarHeading{
+    width: 45px;
+    font-size: 12px;
+    line-height: 16px;
+}
+
+.inputSearch{
+    width: 45vw;
+    font-size: 12px;
+    line-height: 16px;
+    margin-top: 20px;
+}
+
+.navbarButton1{
+    font-size: 12px;
+    line-height: 16px;
+    margin-top: 20px;
+}
+
+.nav-item{
+    display: flex;
+    justify-content: center;
+}   
+
+.navbar img{
+    margin: 0;
+    margin-top: 20px;
+}
+
+.addItem{
+    font-size: 12px;
+    line-height: 16px;
+    margin-top: 20px;
+}
+
+nav{
+    padding: 0;
+}
+
+.modal h1{
+    font-size: 12px;
+    line-height: 16px;
+}
+
+.modal label{
+    font-size: 12px;
+    line-height: 16px;
+}
+.modal-footer button {
+    width: 25%;
+}
+
+.modal input{
+    font-size: 12px;
+    line-height: 16px;
+}
+
+/* SIDEBAR LEFT  */
+
+.home .left{
+    width: 25vw;
+    transform: translateY(-7vh);
+}
+
+.left i {
+    margin-right: 5px;
+}
+
+.left button{
+    margin-bottom: 10px;
+    width: 24vw;
+    font-size: 9px;
+    line-height: 16px;
+    padding: 8px;
+}
+
+/* HOME */
+.home .right{
+    padding-left: 6vw;
+}
+
+.home h1{
+    font-size: 18px;
+    line-height: 22px;
+}
+
+#addtaskhome{
+    margin-bottom: 20px;
+    width: 40vw;
+    font-size: 9px;
+    line-height: 16px;
+}
+
+.toDo{
+    width: 14px;
+    height: 14px;
+    margin-right: 10px;
+}
+
+.form-check{
+    margin-top: 20px;
+}
+
+.form-check label{
+    font-size: 9px;
+    line-height: 16px;
+    color: #000000;
+}
+.fa-trash{
+    margin-left: 10px;
+}
+
+}
+  
+@media screen and (max-width: 950px) and (min-width: 600px) {
+    /* NAVBAR */
+    .navbarHeading{
+        width: 45px;
+        font-size: 12px;
+        line-height: 16px;
+    }
+    
+    .inputSearch{
+        width: 45vw;
+        font-size: 12px;
+        line-height: 16px;
+        margin-top: 20px;
+    }
+    
+    .navbarButton1{
+        font-size: 12px;
+        line-height: 16px;
+        margin-top: 20px;
+    }
+    
+    .nav-item{
+        display: flex;
+        justify-content: center;
+    }   
+    
+    .navbar img{
+        margin: 0;
+        margin-top: 20px;
+    }
+    
+    .addItem{
+        font-size: 12px;
+        line-height: 16px;
+        margin-top: 20px;
+    }
+    
+    nav{
+        padding: 0;
+    }
+    .modal h1{
+        font-size: 16px;
+        line-height: 20px;
+    }
+    
+    .modal label{
+        font-size: 14px;
+        line-height: 20px;
+    }
+    .modal-footer button {
+        width: 35%;
+    }
+    
+    .modal input{
+        font-size: 14px;
+        line-height: 20px;
+    }  
+    /* SIDEBAR LEFT  */
+
+    .home .left{
+        width: 25vw;
+        transform: translateY(-15vh);
+    }
+
+    .left i {
+        margin-right: 8px;
+    }
+
+    .left button{
+        margin-bottom: 12px;
+        width: 24vw;
+        font-size: 12px;
+        line-height: 18px;
+        padding: 10px;
+    }  
+}
+
+@media screen and (max-width: 1200px) and (min-width: 1000px) {
+    /* NAVBAR */
+    .navbarHeading{
+        width: 50px;
+        font-size: 14px;
+        line-height: 24px;
+    }
+    
+    .inputSearch{
+        width: 48vw;
+        font-size: 14px;
+        line-height: 24px;
+        margin-top: 20px;
+    }
+    
+    .navbarButton1{
+        font-size: 14px;
+        line-height: 24px;
+        margin-top: 20px;
+    }
+    
+    .nav-item{
+        display: flex;
+        justify-content: center;
+    }   
+    
+    .navbar img{
+        margin: 0;
+        margin-top: 20px;
+    }
+    
+    .addItem{
+        font-size: 14px;
+        line-height: 24px;
+        margin-top: 20px;
+    }
+    
+    nav{
+        padding: 0;
+    }
+    .modal h1{
+        font-size: 16px;
+        line-height: 24px;
+    }
+    
+    .modal label{
+        font-size: 14px;
+        line-height: 24px;
+    }
+    .modal-footer button {
+        width: 25%;
+    }
+    
+    .modal input{
+        font-size: 14px;
+        line-height: 24px;
+    }
+    
+}
+  
