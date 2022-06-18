@@ -1,7 +1,9 @@
 <%- include('partials/header') %>
 
 <div class="home">
+  
   <%- include('partials/sidebar') %>
+
   <div class="right">
     <h1>Today</h1>
     <input
@@ -48,11 +50,13 @@
                   >When do you want to complete it?</label
                 >
                 <input
-                  type="text"
+                  type="date"
                   class="form-control"
                   id="input2"
                   name="date"
-                  placeholder="Date in DD/MM//YY"
+                  placeholder="Date in DD-MM-YY"
+                  onfocus="(this.type='date')"
+                  onblur="if(!this.value)this.type='text'"
                 />
               </div>
               <div class="mb-3">
@@ -112,8 +116,12 @@
       </div>
     </div>
     <% items.map((item)=>{ %>
-    <div class="form-check">
-      <form class="mainForm" method="post" action="/update">
+    <div class="form-check" data-bs-toggle="tooltip" data-bs-placement="top" title="<%= item.tag %>">
+      <form class="mainForm" method="post" action="/update" >
+        <input 
+          type="hidden" 
+          name="checkInput" 
+          value="<%= item._id %>">
         <input
           class="form-check-input toDo"
           type="checkbox"
@@ -128,7 +136,7 @@
         <label class="form-check-label" for="toDo" name="checkValue"
         value=<%= item.checked %>>
           <%= item.content %>
-          <span class="date"><%= item.date %></span>
+          <span class="date <%= item.date %>"><%= item.date %></span>
         </label>
       </form>
         <form class="mainForm" method="post" action="/delete">

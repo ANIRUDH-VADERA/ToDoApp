@@ -1,32 +1,49 @@
 <div class="left">
   <div class="byDate">
     <div class="today">
-      <button class="leftButton" type="button">
-        <i class="fa fa-calendar"></i>
-        Today
-        <span class="toBeDone">7</span>
-      </button>
+        <a href="/items/today">
+            <button class="leftButton <%= clicked==="Today" ? "on" : "" %>" type="button">
+                <i class="fa fa-calendar"></i>
+                Today
+                <span class="toBeDone"><%= count_today %> </span>
+            </button>
+        </a>
     </div>
-    <div class="tommorow">
-      <button class="leftButton" type="button">
-        <i class="fa fa-list-ul"></i>
-        Tommorow
-        <span class="toBeDone">7</span>
-      </button>
+    <div class="tomorrow">
+        <a href="/items/tomorrow">
+            <button class="leftButton <%= clicked==="Tommorow" ? "on" : "" %>" type="button">
+                <i class="fa fa-list-ul"></i>
+                Tomorrow
+                <span class="toBeDone"><%= count_tomorrow %> </span>
+            </button>
+        </a>
+    </div>
+    <div class="yesterday">
+        <a href="/items/yesterday">
+            <button class="leftButton <%= clicked==="Yesterday" ? "on" : "" %>" type="button">
+                <i class="fa fa-list-ul"></i>
+                Yesterday
+                <span class="toBeDone"><%= count_yesterday %> </span>
+            </button>
+        </a>
     </div>
     <div class="archieve">
-      <button class="leftButton" type="button">
-        <i class="fa fa-list-ul"></i>
-        Archieve
-        <span class="toBeDone">7</span>
-      </button>
+        <a href="/items/archieve">
+            <button class="leftButton <%= clicked==="Archieve" ? "on" : "" %>" type="button">
+                <i class="fa fa-list-ul"></i>
+                Archieve
+                <span class="toBeDone"><%= count_archive %></span>
+            </button>
+         </a>
     </div>
     <div class="all">
-      <button class="leftButton" type="button">
-        <i class="fa fa-list-ul"></i>
-        All
-        <span class="toBeDone">7</span>
-      </button>
+        <a href="/items/all">
+            <button class="leftButton <%= clicked==="All" ? "on" : "" %>" type="button">
+                <i class="fa fa-list-ul"></i>
+                All
+                <span class="toBeDone"><%= count_all %></span>
+            </button>
+         </a>
     </div>
   </div>
   <div class="line">
@@ -34,25 +51,31 @@
   </div>
   <div class="byTag">
     <div class="hometag">
-      <button class="leftButton" type="button">
-        <i class="fa fa-list-ul"></i>
-        Home
-        <span class="toBeDone">7</span>
-      </button>
+      <a href="/items/home">
+        <button class="leftButton <%= clicked==="Home" ? "on" : "" %>" type="button">
+          <i class="fa fa-list-ul"></i>
+          Home
+          <span class="toBeDone"><%= count_home %></span>
+        </button>
+      </a>
     </div>
     <div class="personaltag">
-      <button class="leftButton" type="button">
-        <i class="fa fa-list-ul"></i>
-        Personal
-        <span class="toBeDone">7</span>
-      </button>
+      <a href="/items/personal">
+        <button class="leftButton <%= clicked==="Personal" ? "on" : "" %>" type="button ">
+          <i class="fa fa-list-ul"></i>
+          Personal
+          <span class="toBeDone"><%= count_personal %></span>
+        </button>
+      </a>
     </div>
     <div class="officetag">
-      <button class="leftButton" type="button">
-        <i class="fa fa-list-ul"></i>
-        Office
-        <span class="toBeDone">7</span>
-      </button>
+      <a href="/items/office">
+        <button class="leftButton <%= clicked==="Office" ? "on" : "" %>" type="button">
+          <i class="fa fa-list-ul"></i>
+          Office
+          <span class="toBeDone"><%= count_office %></span>
+        </button>
+      </a>
     </div>
   </div>
 </div>

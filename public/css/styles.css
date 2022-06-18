@@ -1,6 +1,8 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter&family=League+Spartan:wght@300&family=Montserrat&family=Roboto&display=swap');
 
-
+.left a{
+    text-decoration: none;
+}
 
 /* NAVBAR */
 
@@ -131,6 +133,11 @@ nav{
     border-top: 1px solid #E5E7EB;
 }
 
+.on{
+    font-weight: 700 !important;
+    color: #1D4ED8 !important;
+    background-color: #EFF6FF !important; 
+}
 
 /* HOME */
 
@@ -180,6 +187,7 @@ nav{
     display: flex;
     justify-content: center;
     align-items: center;
+    position: relative;
 }
 
 .mainForm{
@@ -187,8 +195,6 @@ nav{
     justify-content: center;
     align-items: center;
 }
-
-
 
 .fa-trash{
     margin-left: 15px;
@@ -214,14 +220,14 @@ nav{
     display: block;
 }
 
-.today{
-    color: #2563EB;
+.Today{
+    color: #2563EB !important;
 }
-.tommorow{
-    color: purple;
+.Tommorow{
+    color: purple !important;
 }
-.yesterday{
-    color: #DC2626;
+.Yesterday{
+    color: #DC2626 !important;
 }
 
 .date{
@@ -341,6 +347,7 @@ nav{
 
 .form-check{
     margin-top: 20px;
+    position: relative;
 }
 
 .form-check label{
