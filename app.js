@@ -14,7 +14,8 @@ const itemsSchema = new mongoose.Schema({
     content: String,
     date: String,
     tag: String,
-    checked: Boolean
+    checked: Boolean,
+    realDate: String,
 });
 
 const Item = mongoose.model('Item', itemsSchema);
@@ -39,8 +40,98 @@ var count_tomorrow=0;
 var count_yesterday=0;
 var count_archive=0;
 var count_all=0;
+var today;
+var tommorow;
+var yesterday;
+var mm;
+var dd;
+var yyyy;
 
 app.get("/",function(req,res){
+    today = new Date();
+    dd = String(today.getDate()).padStart(2, '0');
+    mm = String(today.getMonth() + 1).padStart(2, '0');
+    yyyy = today.getFullYear();
+    today = yyyy + '-' + mm + '-' + dd;
+    yesterday = new Date(new Date().getTime() - 24*60*60*1000);
+    dd = String(yesterday.getDate()).padStart(2, '0');
+    mm = String(yesterday.getMonth() + 1).padStart(2, '0'); 
+    yyyy = yesterday.getFullYear();
+    yesterday = yyyy + '-' + mm + '-' + dd;
+    tommorow =  new Date(new Date().getTime() + 24*60*60*1000);
+    dd = String(tommorow.getDate()).padStart(2, '0');
+    mm = String(tommorow.getMonth() + 1).padStart(2, '0'); 
+    yyyy = tommorow.getFullYear();
+    tommorow = yyyy + '-' + mm + '-' + dd;
+    Item.find({}, function (err, items) {
+        count_home=0;
+        count_office=0;
+        count_personal=0;
+        count_today=0;
+        count_tomorrow=0;
+        count_yesterday=0;
+        count_archive=0;
+        count_all=0;
+        count_all = items.length;
+        items.map((item)=>{
+            if(item.realDate===today){
+                Item.findOneAndUpdate({_id:item._id},{date:"Today"},function (err) {
+                    if (err) {
+                        console.log(err);
+                    } else {
+                        console.log("Successfully updated to database");
+                    }
+                });
+            }
+            else if(item.realDate===tommorow){
+                Item.findOneAndUpdate({_id:item._id},{date:"Tomorrow"},function (err) {
+                    if (err) {
+                        console.log(err);
+                    } else {
+                        console.log("Successfully updated to database");
+                    }
+                });
+            }
+            else if(item.realDate===yesterday){
+                Item.findOneAndUpdate({_id:item._id},{date:"Yesterday"},function (err) {
+                    if (err) {
+                        console.log(err);
+                    } else {
+                        console.log("Successfully updated to database");
+                    }
+                });
+            }
+            else{
+                
+            }
+            if(item.tag==="Home"){
+                count_home++;
+            }
+            else if(item.tag==="Office"){
+                count_office++;
+            }
+            else if(item.tag==="Personal"){
+                count_personal++;
+            }
+            if(item.date==="Today"){
+                count_today++;
+            }
+            else if(item.date==="Tomorrow"){
+                count_tomorrow++;
+            }
+            else if(item.date==="Yesterday"){
+                count_yesterday++;
+            }
+            if(item.checked===true){
+                count_archive++;
+            }
+        });
+        res.render("home",{status:"",previous:"/",clicked:"MainPage",items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
+    });
+});
+
+app.get("/items/:itemTitle",function(req,res){
+    const itemTag = _.capitalize(req.params.itemTitle);
     Item.find({}, function (err, items) {
         count_home=0;
         count_office=0;
@@ -74,33 +165,108 @@ app.get("/",function(req,res){
                 count_archive++;
             }
         });
-        res.render("home",{clicked:"",items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
     });
-});
-
-app.get("/items/:itemTitle",function(req,res){
-    const itemTag = _.capitalize(req.params.itemTitle);
     if(itemTag==="Home" || itemTag==="Office" || itemTag==="Personal"){
         Item.find({tag:itemTag}, function (err, items) {
-            res.render("home",{clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
+            res.render("home",{status:"",previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
         });
     }
     else{
         if(itemTag==="Archieve"){
             Item.find({checked:true}, function (err, items) {
                 count_archive=items.length;
-                res.render("home",{clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:items.length, count_yesterday:count_yesterday});
+                res.render("home",{status:"",previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:items.length, count_yesterday:count_yesterday});
             });
         }
         else if(itemTag==="All"){
             Item.find({}, function (err, items) {
-                res.render("home",{clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
+                res.render("home",{status:"",previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
             });
         }
         else{
             Item.find({date:itemTag}, function (err, items) {
-                res.render("home",{clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
+                res.render("home",{status:"",previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
             });
+        }
+    }
+});
+
+app.post("/items/:itemTitle",function(req,res){
+    const itemTag = _.capitalize(req.params.itemTitle);
+    const status = req.body.btnradio;
+    if(status==="completed"){
+        if(itemTag==="Home" || itemTag==="Office" || itemTag==="Personal"){
+            Item.find({tag:itemTag,checked:true}, function (err, items) {
+                res.render("home",{status:status,previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
+            });
+        }
+        else{
+            if(itemTag==="Archieve"){
+                Item.find({checked:true}, function (err, items) {
+                    count_archive=items.length;
+                    res.render("home",{status:status,previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:items.length, count_yesterday:count_yesterday});
+                });
+            }
+            else if(itemTag==="All"){
+                Item.find({checked:true}, function (err, items) {
+                    res.render("home",{status:status,previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
+                });
+            }
+            else{
+                Item.find({date:itemTag,checked:true}, function (err, items) {
+                    res.render("home",{status:status,previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
+                });
+            }
+        }
+    }
+    else if(status==="todo"){ 
+        if(itemTag==="Home" || itemTag==="Office" || itemTag==="Personal"){
+            Item.find({tag:itemTag,checked:false}, function (err, items) {
+                res.render("home",{status:status,previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
+            });
+        }
+        else{
+            if(itemTag==="Archieve"){
+                Item.find({checked:true}, function (err, items) {
+                    count_archive=items.length;
+                    res.render("home",{status:status,previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:items.length, count_yesterday:count_yesterday});
+                });
+            }
+            else if(itemTag==="All"){
+                Item.find({checked:false}, function (err, items) {
+                    res.render("home",{status:status,previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
+                });
+            }
+            else{
+                Item.find({date:itemTag,checked:false}, function (err, items) {
+                    res.render("home",{status:status,previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
+                });
+            }
+        }
+    }
+    else{
+        if(itemTag==="Home" || itemTag==="Office" || itemTag==="Personal"){
+            Item.find({tag:itemTag}, function (err, items) {
+                res.render("home",{status:status,previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
+            });
+        }
+        else{
+            if(itemTag==="Archieve"){
+                Item.find({checked:true}, function (err, items) {
+                    count_archive=items.length;
+                    res.render("home",{status:status,previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:items.length, count_yesterday:count_yesterday});
+                });
+            }
+            else if(itemTag==="All"){
+                Item.find({}, function (err, items) {
+                    res.render("home",{status:status,previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
+                });
+            }
+            else{
+                Item.find({date:itemTag}, function (err, items) {
+                    res.render("home",{status:status,previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
+                });
+            }
         }
     }
 });
@@ -111,37 +277,6 @@ app.post("/delete", function (req, res) {
         if (err) {
             console.log(err);
         } else {
-            Item.find({}, function (err, items) {
-                count_home=0;
-                count_office=0;
-                count_personal=0;
-                count_today=0;
-                count_tomorrow=0;
-                count_yesterday=0;
-                count_archive=0;
-                count_all=0;
-                count_all = items.length;
-                items.map((item)=>{
-                    if(item.tag==="Home"){
-                        count_home++;
-                    }
-                    else if(item.tag==="Office"){
-                        count_office++;
-                    }
-                    else if(item.tag==="Personal"){
-                        count_personal++;
-                    }
-                    if(item.date==="Today"){
-                        count_today++;
-                    }
-                    else if(item.date==="Tomorrow"){
-                        count_tomorrow++;
-                    }
-                    else if(item.date==="Yesterday"){
-                        count_yesterday++;
-                    }
-                });
-            });
             console.log("Successfully deleted to database");
         }
     });
@@ -183,24 +318,23 @@ app.post("/update", function (req, res) {
 
 
 app.post("/",function(req,res){
-    var today = new Date();
-    var dd = String(today.getDate()).padStart(2, '0');
-    var mm = String(today.getMonth() + 1).padStart(2, '0');
-    var yyyy = today.getFullYear();
+    today = new Date();
+    dd = String(today.getDate()).padStart(2, '0');
+    mm = String(today.getMonth() + 1).padStart(2, '0');
+    yyyy = today.getFullYear();
     today = yyyy + '-' + mm + '-' + dd;
-    var yesterday = new Date(new Date().getTime() - 24*60*60*1000);
+    yesterday = new Date(new Date().getTime() - 24*60*60*1000);
     dd = String(yesterday.getDate()).padStart(2, '0');
     mm = String(yesterday.getMonth() + 1).padStart(2, '0'); 
     yyyy = yesterday.getFullYear();
     yesterday = yyyy + '-' + mm + '-' + dd;
-    var tommorow =  new Date(new Date().getTime() + 24*60*60*1000);
+    tommorow =  new Date(new Date().getTime() + 24*60*60*1000);
     dd = String(tommorow.getDate()).padStart(2, '0');
     mm = String(tommorow.getMonth() + 1).padStart(2, '0'); 
     yyyy = tommorow.getFullYear();
     tommorow = yyyy + '-' + mm + '-' + dd;
     var date;
     if(req.body.date===today){
-        console.log("hi");
         date = "Today";
     }
     else if(req.body.date===tommorow){
@@ -218,6 +352,7 @@ app.post("/",function(req,res){
             date: date,
             tag: "Home",
             checked: false,
+            realDate:req.body.date
         });
         Item.insertMany(add, function (err) {
             if (err) {
@@ -226,7 +361,7 @@ app.post("/",function(req,res){
                 console.log("Successfully saved to database");
             }
         });
-        res.redirect("/");
+        res.redirect("back");
     }
     if(req.body.personal){
         const add = new Item({ 
@@ -242,7 +377,7 @@ app.post("/",function(req,res){
                 console.log("Successfully saved to database");
             }
         });
-        res.redirect("/");
+        res.redirect("back");
     }
     if(req.body.office){
         const add = new Item({ 
@@ -258,7 +393,7 @@ app.post("/",function(req,res){
                 console.log("Successfully saved to database");
             }
         });
-        res.redirect("/");
+        res.redirect("back");
     }
 });
 

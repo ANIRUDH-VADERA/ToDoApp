@@ -4,6 +4,20 @@
     text-decoration: none;
 }
 
+.mainPageHeader{
+    display: flex;
+    justify-content: space-between;
+    width: 35vw;
+}
+
+.mainPageHeader .btn-group{
+    display: flex;
+}
+
+.mainPageHeaderForm{
+    margin-left:5px;
+}
+
 /* NAVBAR */
 
 .navbarHeading{
@@ -330,6 +344,7 @@ nav{
 .home h1{
     font-size: 18px;
     line-height: 22px;
+    margin-bottom: 10px;
 }
 
 #addtaskhome{
@@ -357,6 +372,16 @@ nav{
 }
 .fa-trash{
     margin-left: 10px;
+}
+
+.mainPageHeader{
+    display : block;
+    width: 70vw;
+    margin-bottom: 10px;
+}
+
+.mainPageHeader label{
+    font-size: 9px;
 }
 
 }
@@ -420,6 +445,7 @@ nav{
     }  
     /* SIDEBAR LEFT  */
 
+
     .home .left{
         width: 25vw;
         transform: translateY(-15vh);
@@ -436,9 +462,23 @@ nav{
         line-height: 18px;
         padding: 10px;
     }  
+
+    .home h1{
+        margin-bottom: 10px;
+    }
+
+    .mainPageHeader{
+        display : block;
+        width: 70vw;
+        margin-bottom: 10px;
+    }
+    
+    .mainPageHeader label{
+        font-size: 12px;
+    }
 }
 
-@media screen and (max-width: 1200px) and (min-width: 1000px) {
+@media screen and (max-width: 1280px) and (min-width: 1000px) {
     /* NAVBAR */
     .navbarHeading{
         width: 50px;
@@ -495,6 +535,8 @@ nav{
         font-size: 14px;
         line-height: 24px;
     }
-    
+    .mainPageHeader{
+        width: 46vw;
+    }   
 }
   
