@@ -22,7 +22,7 @@
     <section class="navbarMain" id="navbarMain">
       <nav class="navbar navbar-expand-lg bg-light fixed-top">
         <div class="container-fluid">
-          <a class="navbar-brand navbarHeading" href="/">TASKS</a>
+          <a class="navbar-brand navbarHeading" href="/mainPage">TASKS</a>
           <button
             class="navbar-toggler"
             type="button"
@@ -82,7 +82,7 @@
                         ></button>
                       </div>
                       <div class="modal-body">
-                        <form method="post" action="/">
+                        <form method="post" action="/mainPage">
                           <div class="mb-3">
                             <label for="input1" class="form-label"
                               >What are you upto?</label
@@ -175,7 +175,13 @@
                 </div>
               </li>
               <li class="nav-item">
-                <img src="/images/profile.svg" />
+                <img
+                  src="/images/profile.svg"
+                  data-bs-toggle="tooltip"
+                  data-bs-placement="bottom"
+                  data-bs-custom-class="custom-tooltip"
+                  title="<%= mainUsername %>"
+                />
               </li>
             </ul>
           </div>

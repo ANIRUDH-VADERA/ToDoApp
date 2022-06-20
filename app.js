@@ -5,32 +5,18 @@ const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
 const ejs = require('ejs');
 const _ = require('lodash');
-
+const bcrypt = require('bcrypt');
+const saltRounds = 10;
 const app = express();
-
-mongoose.connect("mongodb://localhost:27017/internDB", {useNewUrlParser: true, useUnifiedTopology: true});
-
-const itemsSchema = new mongoose.Schema({
-    content: String,
-    date: String,
-    tag: String,
-    checked: Boolean,
-    realDate: String,
-});
-
-const Item = mongoose.model('Item', itemsSchema);
-
-// const userSchema =  new mongoose.Schema({
-//     name: String,
-//     password: String,
-//     listItems: [itemsSchema]
-// });
-
-// const User = mongoose.model('User', userSchema);
+const cookieParser = require("cookie-parser");
+const { createTokens, validateToken } = require("./JWT");
+const jwt = require('jsonwebtoken');
+const JWP_SECRET = process.env.JWP_SECRET;
 
 app.use(express.static(__dirname + '/public'));
 app.set('view engine', 'ejs');
 app.use(bodyParser.urlencoded({extended: true}));
+app.use(cookieParser());
 
 var count_home=0;
 var count_office=0;
@@ -47,90 +33,132 @@ var mm;
 var dd;
 var yyyy;
 
-app.get("/",function(req,res){
-    today = new Date();
-    dd = String(today.getDate()).padStart(2, '0');
-    mm = String(today.getMonth() + 1).padStart(2, '0');
-    yyyy = today.getFullYear();
-    today = yyyy + '-' + mm + '-' + dd;
-    yesterday = new Date(new Date().getTime() - 24*60*60*1000);
-    dd = String(yesterday.getDate()).padStart(2, '0');
-    mm = String(yesterday.getMonth() + 1).padStart(2, '0'); 
-    yyyy = yesterday.getFullYear();
-    yesterday = yyyy + '-' + mm + '-' + dd;
-    tommorow =  new Date(new Date().getTime() + 24*60*60*1000);
-    dd = String(tommorow.getDate()).padStart(2, '0');
-    mm = String(tommorow.getMonth() + 1).padStart(2, '0'); 
-    yyyy = tommorow.getFullYear();
-    tommorow = yyyy + '-' + mm + '-' + dd;
-    Item.find({}, function (err, items) {
-        count_home=0;
-        count_office=0;
-        count_personal=0;
-        count_today=0;
-        count_tomorrow=0;
-        count_yesterday=0;
-        count_archive=0;
-        count_all=0;
-        count_all = items.length;
-        items.map((item)=>{
-            if(item.realDate===today){
-                Item.findOneAndUpdate({_id:item._id},{date:"Today"},function (err) {
-                    if (err) {
-                        console.log(err);
-                    } else {
-                        console.log("Successfully updated to database");
-                    }
-                });
-            }
-            else if(item.realDate===tommorow){
-                Item.findOneAndUpdate({_id:item._id},{date:"Tomorrow"},function (err) {
-                    if (err) {
-                        console.log(err);
-                    } else {
-                        console.log("Successfully updated to database");
-                    }
-                });
-            }
-            else if(item.realDate===yesterday){
-                Item.findOneAndUpdate({_id:item._id},{date:"Yesterday"},function (err) {
-                    if (err) {
-                        console.log(err);
-                    } else {
-                        console.log("Successfully updated to database");
-                    }
-                });
-            }
-            else{
-                
-            }
-            if(item.tag==="Home"){
-                count_home++;
-            }
-            else if(item.tag==="Office"){
-                count_office++;
-            }
-            else if(item.tag==="Personal"){
-                count_personal++;
-            }
-            if(item.date==="Today"){
-                count_today++;
-            }
-            else if(item.date==="Tomorrow"){
-                count_tomorrow++;
-            }
-            else if(item.date==="Yesterday"){
-                count_yesterday++;
-            }
-            if(item.checked===true){
-                count_archive++;
-            }
-        });
-        res.render("home",{status:"",previous:"/",clicked:"MainPage",items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
-    });
+let mainUsername;
+
+mongoose.connect("mongodb://localhost:27017/internDB", {useNewUrlParser: true, useUnifiedTopology: true});
+
+const itemsSchema = new mongoose.Schema({
+    content: String,
+    date: String,
+    tag: String,
+    checked: Boolean,
+    realDate: String,
 });
 
-app.get("/items/:itemTitle",function(req,res){
+const Item = mongoose.model('Item', itemsSchema);
+
+const userSchema =  new mongoose.Schema({
+    name: {type: String, required: true,unique: true},
+    password: {type: String, required: true},
+    listItems: [itemsSchema]
+});
+
+const User = mongoose.model('User', userSchema);
+
+
+
+app.get("/mainPage",validateToken,function(req,res){
+        const accessToken = req.cookies["access-token"];  
+        const validToken = jwt.verify(accessToken, JWP_SECRET);
+        mainUsername = validToken.name;
+        today = new Date();
+        dd = String(today.getDate()).padStart(2, '0');
+        mm = String(today.getMonth() + 1).padStart(2, '0');
+        yyyy = today.getFullYear();
+        today = yyyy + '-' + mm + '-' + dd;
+        yesterday = new Date(new Date().getTime() - 24*60*60*1000);
+        dd = String(yesterday.getDate()).padStart(2, '0');
+        mm = String(yesterday.getMonth() + 1).padStart(2, '0'); 
+        yyyy = yesterday.getFullYear();
+        yesterday = yyyy + '-' + mm + '-' + dd;
+        tommorow =  new Date(new Date().getTime() + 24*60*60*1000);
+        dd = String(tommorow.getDate()).padStart(2, '0');
+        mm = String(tommorow.getMonth() + 1).padStart(2, '0'); 
+        yyyy = tommorow.getFullYear();
+        tommorow = yyyy + '-' + mm + '-' + dd;
+        Item.find({}, function (err, items) {
+            count_home=0;
+            count_office=0;
+            count_personal=0;
+            count_today=0;
+            count_tomorrow=0;
+            count_yesterday=0;
+            count_archive=0;
+            count_all=0;
+            count_all = items.length;
+            items.map((item)=>{
+                if(item.realDate===today){
+                    Item.findOneAndUpdate({_id:item._id},{date:"Today"},function (err) {
+                        if (err) {
+                            console.log(err);
+                        } else {
+                            console.log("Successfully updated to database");
+                        }
+                    });
+                }
+                else if(item.realDate===tommorow){
+                    Item.findOneAndUpdate({_id:item._id},{date:"Tomorrow"},function (err) {
+                        if (err) {
+                            console.log(err);
+                        } else {
+                            console.log("Successfully updated to database");
+                        }
+                    });
+                }
+                else if(item.realDate===yesterday){
+                    Item.findOneAndUpdate({_id:item._id},{date:"Yesterday"},function (err) {
+                        if (err) {
+                            console.log(err);
+                        } else {
+                            console.log("Successfully updated to database");
+                        }
+                    });
+                }
+                else{
+
+                }
+                if(item.tag==="Home"){
+                    count_home++;
+                }
+                else if(item.tag==="Office"){
+                    count_office++;
+                }
+                else if(item.tag==="Personal"){
+                    count_personal++;
+                }
+                if(item.date==="Today"){
+                    count_today++;
+                }
+                else if(item.date==="Tomorrow"){
+                    count_tomorrow++;
+                }
+                else if(item.date==="Yesterday"){
+                    count_yesterday++;
+                }
+                if(item.checked===true){
+                    count_archive++;
+                }
+            });
+            res.render("home",{mainUsername:mainUsername,status:"",previous:"/",clicked:"MainPage",items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
+        });
+});
+
+app.get("/",function(req,res){
+    res.render("landing");
+});
+
+app.get("/login",function(req,res){
+    res.render("login");
+});
+
+app.get("/register",function(req,res){
+    res.render("register");
+});
+
+app.get("/items/:itemTitle",validateToken,function(req,res){
+    const accessToken = req.cookies["access-token"];  
+    const validToken = jwt.verify(accessToken, JWP_SECRET);
+    mainUsername = validToken.name;
     const itemTag = _.capitalize(req.params.itemTitle);
     Item.find({}, function (err, items) {
         count_home=0;
@@ -168,104 +196,195 @@ app.get("/items/:itemTitle",function(req,res){
     });
     if(itemTag==="Home" || itemTag==="Office" || itemTag==="Personal"){
         Item.find({tag:itemTag}, function (err, items) {
-            res.render("home",{status:"",previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
+            res.render("home",{mainUsername:mainUsername,status:"",previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
         });
     }
     else{
         if(itemTag==="Archieve"){
             Item.find({checked:true}, function (err, items) {
                 count_archive=items.length;
-                res.render("home",{status:"",previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:items.length, count_yesterday:count_yesterday});
+                res.render("home",{mainUsername:mainUsername,status:"",previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:items.length, count_yesterday:count_yesterday});
             });
         }
         else if(itemTag==="All"){
             Item.find({}, function (err, items) {
-                res.render("home",{status:"",previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
+                res.render("home",{mainUsername:mainUsername,status:"",previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
             });
         }
         else{
             Item.find({date:itemTag}, function (err, items) {
-                res.render("home",{status:"",previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
+                res.render("home",{mainUsername:mainUsername,status:"",previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
             });
         }
     }
 });
+
+
+app.post("/register",function(req,res){
+    bcrypt.hash(req.body.password, saltRounds, function(err, hash) {
+        const newUser = new User({
+            name: req.body.username,
+            password: hash,
+            listItems: []
+        });
+        newUser.save(function(err){
+            if(err){
+                if(err.code === 11000){
+                    res.send("Duplicate User");
+                }
+                else{
+                    res.send(err);
+                }
+            }
+            else{
+                res.redirect("/login");
+            }
+        });
+    });
+});
+
+app.post("/login",function(req,res){
+    const username = req.body.username;
+    const password = req.body.password;
+
+    User.findOne({name: username},function(err,foundUser){
+        if(err){
+            console.log(err);
+        }else{
+            if(foundUser){
+                bcrypt.compare(password, foundUser.password, function(err, result) {
+                    if(result === true){
+                        const accessToken = createTokens(foundUser);
+                        res.cookie("access-token", accessToken, {
+                            maxAge: 60 * 60 * 24 * 30 * 1000,
+                            httpOnly: true,
+                        });
+                        res.redirect("/mainPage");
+                    }
+                    else{
+                        res.send("Incorrect password");
+                    }
+                });            
+            }
+        }
+    });
+})
+
 
 app.post("/items/:itemTitle",function(req,res){
     const itemTag = _.capitalize(req.params.itemTitle);
     const status = req.body.btnradio;
     if(status==="completed"){
         if(itemTag==="Home" || itemTag==="Office" || itemTag==="Personal"){
-            Item.find({tag:itemTag,checked:true}, function (err, items) {
+            User.find({name:mainUsername},{$query:{ listItems: { tag: itemTag,checked:true }}},function(err,items){
                 res.render("home",{status:status,previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
             });
+            // Item.find({tag:itemTag,checked:true}, function (err, items) {
+            //     res.render("home",{status:status,previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
+            // });
         }
         else{
             if(itemTag==="Archieve"){
-                Item.find({checked:true}, function (err, items) {
+                User.find({name:mainUsername},{$query:{ listItems: {checked:true }}},function(err,items){
                     count_archive=items.length;
                     res.render("home",{status:status,previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:items.length, count_yesterday:count_yesterday});
                 });
+                // Item.find({checked:true}, function (err, items) {
+                //     count_archive=items.length;
+                //     res.render("home",{status:status,previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:items.length, count_yesterday:count_yesterday});
+                // });
             }
             else if(itemTag==="All"){
-                Item.find({checked:true}, function (err, items) {
+                User.find({name:mainUsername},{$query:{ listItems: {checked:true }}},function(err,items){
                     res.render("home",{status:status,previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
                 });
+                // Item.find({checked:true}, function (err, items) {
+                //     res.render("home",{status:status,previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
+                // });
             }
             else{
-                Item.find({date:itemTag,checked:true}, function (err, items) {
+                User.find({name:mainUsername},{$query:{ listItems: {date:itemTag,checked:true}}},function(err,items){
                     res.render("home",{status:status,previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
                 });
+                // Item.find({date:itemTag,checked:true}, function (err, items) {
+                //     res.render("home",{status:status,previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
+                // });
             }
         }
     }
     else if(status==="todo"){ 
         if(itemTag==="Home" || itemTag==="Office" || itemTag==="Personal"){
-            Item.find({tag:itemTag,checked:false}, function (err, items) {
+            User.find({name:mainUsername},{$query:{ listItems: {tag:itemTag,checked:false}}},function(err,items){
                 res.render("home",{status:status,previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
             });
+            // Item.find({tag:itemTag,checked:false}, function (err, items) {
+            //     res.render("home",{status:status,previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
+            // });
         }
         else{
             if(itemTag==="Archieve"){
-                Item.find({checked:true}, function (err, items) {
+                User.find({name:mainUsername},{$query:{ listItems: {checked:true}}},function(err,items){
                     count_archive=items.length;
                     res.render("home",{status:status,previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:items.length, count_yesterday:count_yesterday});
                 });
+                // Item.find({checked:true}, function (err, items) {
+                //     count_archive=items.length;
+                //     res.render("home",{status:status,previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:items.length, count_yesterday:count_yesterday});
+                // });
             }
             else if(itemTag==="All"){
-                Item.find({checked:false}, function (err, items) {
+                User.find({name:mainUsername},{$query:{ listItems: {checked:false}}},function(err,items){
                     res.render("home",{status:status,previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
                 });
+                // Item.find({checked:false}, function (err, items) {
+                //     res.render("home",{status:status,previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
+                // });
             }
             else{
-                Item.find({date:itemTag,checked:false}, function (err, items) {
+                User.find({name:mainUsername},{$query:{ listItems: {date:itemTag,checked:false}}},function(err,items){
                     res.render("home",{status:status,previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
                 });
+                // Item.find({date:itemTag,checked:false}, function (err, items) {
+                //     res.render("home",{status:status,previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
+                // });
             }
         }
     }
     else{
         if(itemTag==="Home" || itemTag==="Office" || itemTag==="Personal"){
-            Item.find({tag:itemTag}, function (err, items) {
+            User.find({name:mainUsername},{$query:{ listItems: {tag:itemTag}}},function(err,items){
                 res.render("home",{status:status,previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
             });
+            // Item.find({tag:itemTag}, function (err, items) {
+            //     res.render("home",{status:status,previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
+            // });
         }
         else{
             if(itemTag==="Archieve"){
-                Item.find({checked:true}, function (err, items) {
+                User.find({name:mainUsername},{$query:{ listItems: {checked:true}}},function(err,items){
                     count_archive=items.length;
                     res.render("home",{status:status,previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:items.length, count_yesterday:count_yesterday});
                 });
+                // Item.find({checked:true}, function (err, items) {
+                //     count_archive=items.length;
+                //     res.render("home",{status:status,previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:items.length, count_yesterday:count_yesterday});
+                // });
             }
             else if(itemTag==="All"){
-                Item.find({}, function (err, items) {
+                User.find({name:mainUsername},{$query:{ listItems: {}}},function(err,items){
                     res.render("home",{status:status,previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
                 });
+                // Item.find({}, function (err, items) {
+                //     res.render("home",{status:status,previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
+                // });
             }
             else{
-                Item.find({date:itemTag}, function (err, items) {
+                User.find({name:mainUsername},{$query:{ listItems: {date:itemTag}}},function(err,items){
                     res.render("home",{status:status,previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
                 });
+                // Item.find({date:itemTag}, function (err, items) {
+                //     res.render("home",{status:status,previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
+                // });
             }
         }
     }
@@ -273,14 +392,21 @@ app.post("/items/:itemTitle",function(req,res){
 
 app.post("/delete", function (req, res) {
     var item_id = req.body.deleteItem;
-    Item.findByIdAndRemove(item_id, function (err) {
-        if (err) {
-            console.log(err);
-        } else {
-            console.log("Successfully deleted to database");
+    User.findOneAndUpdate({name:mainUsername},{ $pull: { listItems: { _id: item_id } } },function(err,foundList){
+        if(err){
+            res.send(err);
+        }
+        else{
+            res.redirect('back');
         }
     });
-    res.redirect('back');
+    // Item.findByIdAndRemove(item_id, function (err) {
+    //     if (err) {
+    //         console.log(err);
+    //     } else {
+    //         console.log("Successfully deleted to database");
+    //     }
+    // });
 });
 
 app.post("/update", function (req, res) {
@@ -315,9 +441,7 @@ app.post("/update", function (req, res) {
     }
 });
 
-
-
-app.post("/",function(req,res){
+app.post("/mainPage",function(req,res){
     today = new Date();
     dd = String(today.getDate()).padStart(2, '0');
     mm = String(today.getMonth() + 1).padStart(2, '0');
@@ -347,57 +471,69 @@ app.post("/",function(req,res){
         date = req.body.date
     }
     if(req.body.home){
-        const add = new Item({ 
-            content: req.body.content,
-            date: date,
-            tag: "Home",
-            checked: false,
-            realDate:req.body.date
+        User.findOne({name:mainUsername},function(err,foundUser){
+            const add = new Item({ 
+                content: req.body.content,
+                date: date,
+                tag: "Home",
+                checked: false,
+                realDate:req.body.date
+            });
+            foundUser.listItems.push(add);
+            foundUser.save(function(err){
+                if(err){
+                    console.log(err);
+                }
+                else{
+                    console.log("Successfully added to database");
+                }
+            });
+            res.redirect("back");
         });
-        Item.insertMany(add, function (err) {
-            if (err) {
-                console.log(err);
-            } else {
-                console.log("Successfully saved to database");
-            }
-        });
-        res.redirect("back");
     }
     if(req.body.personal){
-        const add = new Item({ 
-            content: req.body.content,
-            date: date,
-            tag: "Personal",
-            checked: false,
+        User.findOne({name:mainUsername},function(err,foundUser){
+            const add = new Item({ 
+                content: req.body.content,
+                date: date,
+                tag: "Personal",
+                checked: false,
+                realDate:req.body.date
+            });
+            foundUser.listItems.push(add);
+            foundUser.save(function(err){
+                if(err){
+                    console.log(err);
+                }
+                else{
+                    console.log("Successfully added to database");
+                }
+            });
+            res.redirect("back");
         });
-        Item.insertMany(add, function (err) {
-            if (err) {
-                console.log(err);
-            } else {
-                console.log("Successfully saved to database");
-            }
-        });
-        res.redirect("back");
     }
     if(req.body.office){
-        const add = new Item({ 
-            content: req.body.content,
-            date: date,
-            tag: "Office",
-            checked: false,
+        User.findOne({name:mainUsername},function(err,foundUser){
+            const add = new Item({ 
+                content: req.body.content,
+                date: date,
+                tag: "Office",
+                checked: false,
+                realDate:req.body.date
+            });
+            foundUser.listItems.push(add);
+            foundUser.save(function(err){
+                if(err){
+                    console.log(err);
+                }
+                else{
+                    console.log("Successfully added to database");
+                }
+            });
+            res.redirect("back");
         });
-        Item.insertMany(add, function (err) {
-            if (err) {
-                console.log(err);
-            } else {
-                console.log("Successfully saved to database");
-            }
-        });
-        res.redirect("back");
     }
 });
-
-
 
 // Listening on Port 3000
 
