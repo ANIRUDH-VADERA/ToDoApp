@@ -76,7 +76,8 @@ app.get("/mainPage",validateToken,function(req,res){
         mm = String(tommorow.getMonth() + 1).padStart(2, '0'); 
         yyyy = tommorow.getFullYear();
         tommorow = yyyy + '-' + mm + '-' + dd;
-        Item.find({}, function (err, items) {
+        User.find({name:mainUsername},function(err,foundUser){
+            var items = foundUser[0].listItems;
             count_home=0;
             count_office=0;
             count_personal=0;
@@ -88,7 +89,7 @@ app.get("/mainPage",validateToken,function(req,res){
             count_all = items.length;
             items.map((item)=>{
                 if(item.realDate===today){
-                    Item.findOneAndUpdate({_id:item._id},{date:"Today"},function (err) {
+                    User.findOneAndUpdate({name:mainUsername},{$set:{'listItems.$[outer].date': "Today" }},{ "arrayFilters" : [{"outer._id":item._id }]},function(err){
                         if (err) {
                             console.log(err);
                         } else {
@@ -97,7 +98,7 @@ app.get("/mainPage",validateToken,function(req,res){
                     });
                 }
                 else if(item.realDate===tommorow){
-                    Item.findOneAndUpdate({_id:item._id},{date:"Tomorrow"},function (err) {
+                    User.findOneAndUpdate({name:mainUsername},{$set:{'listItems.$[outer].date': "Tomorrow" }},{ "arrayFilters" : [{"outer._id":item._id }]},function(err){
                         if (err) {
                             console.log(err);
                         } else {
@@ -106,7 +107,7 @@ app.get("/mainPage",validateToken,function(req,res){
                     });
                 }
                 else if(item.realDate===yesterday){
-                    Item.findOneAndUpdate({_id:item._id},{date:"Yesterday"},function (err) {
+                    User.findOneAndUpdate({name:mainUsername},{$set:{'listItems.$[outer].date': "Yesterday" }},{ "arrayFilters" : [{"outer._id":item._id }]},function(err){
                         if (err) {
                             console.log(err);
                         } else {
@@ -160,7 +161,8 @@ app.get("/items/:itemTitle",validateToken,function(req,res){
     const validToken = jwt.verify(accessToken, JWP_SECRET);
     mainUsername = validToken.name;
     const itemTag = _.capitalize(req.params.itemTitle);
-    Item.find({}, function (err, items) {
+    User.find({name:mainUsername},function(err,foundUser){
+        var items = foundUser[0].listItems;
         count_home=0;
         count_office=0;
         count_personal=0;
@@ -195,25 +197,40 @@ app.get("/items/:itemTitle",validateToken,function(req,res){
         });
     });
     if(itemTag==="Home" || itemTag==="Office" || itemTag==="Personal"){
-        Item.find({tag:itemTag}, function (err, items) {
-            res.render("home",{mainUsername:mainUsername,status:"",previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
+        User.aggregate([{$match:{name:mainUsername}},{$project:{listItems:{$filter:{input:"$listItems",as:"items",cond:{$in:["$$items.tag",[itemTag]]}}}}}]).exec(function(err,items){
+            if(err){
+                console.log(err);
+            }
+            else{
+                res.render("home",{mainUsername:mainUsername,status:"",previous:req.params.itemTitle,clicked:itemTag,items:items[0].listItems, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
+            }
         });
     }
     else{
         if(itemTag==="Archieve"){
-            Item.find({checked:true}, function (err, items) {
-                count_archive=items.length;
-                res.render("home",{mainUsername:mainUsername,status:"",previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:items.length, count_yesterday:count_yesterday});
+            User.aggregate([{$match:{name:mainUsername}},{$project:{listItems:{$filter:{input:"$listItems",as:"items",cond:{$in:["$$items.checked",[true]]}}}}}]).exec(function(err,items){
+                count_archive=items[0].listItems.length;
+                if(err){
+                    console.log(err);
+                }
+                else{
+                    res.render("home",{mainUsername:mainUsername,status:"",previous:req.params.itemTitle,clicked:itemTag,items:items[0].listItems, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
+                }
             });
         }
         else if(itemTag==="All"){
-            Item.find({}, function (err, items) {
-                res.render("home",{mainUsername:mainUsername,status:"",previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
+            User.find({name:mainUsername},function(err,items){
+                res.render("home",{mainUsername:mainUsername,status:"",previous:req.params.itemTitle,clicked:itemTag,items:items[0].listItems, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
             });
         }
         else{
-            Item.find({date:itemTag}, function (err, items) {
-                res.render("home",{mainUsername:mainUsername,status:"",previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
+            User.aggregate([{$match:{name:mainUsername}},{$project:{listItems:{$filter:{input:"$listItems",as:"items",cond:{$in:["$$items.date",[itemTag]]}}}}}]).exec(function(err,items){
+                if(err){
+                    console.log(err);
+                }
+                else{
+                    res.render("home",{mainUsername:mainUsername,status:"",previous:req.params.itemTitle,clicked:itemTag,items:items[0].listItems, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
+                }
             });
         }
     }
@@ -232,9 +249,7 @@ app.post("/register",function(req,res){
                 if(err.code === 11000){
                     res.send("Duplicate User");
                 }
-                else{
-                    res.send(err);
-                }
+                res.send(err);
             }
             else{
                 res.redirect("/login");
@@ -274,117 +289,141 @@ app.post("/login",function(req,res){
 app.post("/items/:itemTitle",function(req,res){
     const itemTag = _.capitalize(req.params.itemTitle);
     const status = req.body.btnradio;
+    const accessToken = req.cookies["access-token"];  
+    const validToken = jwt.verify(accessToken, JWP_SECRET);
+    mainUsername = validToken.name;
     if(status==="completed"){
         if(itemTag==="Home" || itemTag==="Office" || itemTag==="Personal"){
-            User.find({name:mainUsername},{$query:{ listItems: { tag: itemTag,checked:true }}},function(err,items){
-                res.render("home",{status:status,previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
+            User.aggregate([{$match:{name:mainUsername}},{$project:{listItems:{$filter:{input:"$listItems",as:"items",cond:{$in:["$$items.tag",[itemTag]],$in:["$$items.checked",[true]]}}}}}]).exec(function(err,items){
+                if(err){
+                    console.log(err);
+                }
+                else{
+                    res.render("home",{mainUsername:mainUsername,status:status,previous:req.params.itemTitle,clicked:itemTag,items:items[0].listItems, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
+                }
             });
-            // Item.find({tag:itemTag,checked:true}, function (err, items) {
-            //     res.render("home",{status:status,previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
-            // });
         }
         else{
             if(itemTag==="Archieve"){
-                User.find({name:mainUsername},{$query:{ listItems: {checked:true }}},function(err,items){
-                    count_archive=items.length;
-                    res.render("home",{status:status,previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:items.length, count_yesterday:count_yesterday});
+                User.aggregate([{$match:{name:mainUsername}},{$project:{listItems:{$filter:{input:"$listItems",as:"items",cond:{$in:["$$items.checked",[true]]}}}}}]).exec(function(err,items){
+                    if(err){
+                        console.log(err);
+                    }
+                    else{
+                        count_archive=items.length;
+                        res.render("home",{mainUsername:mainUsername,status:status,previous:req.params.itemTitle,clicked:itemTag,items:items[0].listItems, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:items.length, count_yesterday:count_yesterday});
+                    }
                 });
-                // Item.find({checked:true}, function (err, items) {
-                //     count_archive=items.length;
-                //     res.render("home",{status:status,previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:items.length, count_yesterday:count_yesterday});
-                // });
             }
             else if(itemTag==="All"){
-                User.find({name:mainUsername},{$query:{ listItems: {checked:true }}},function(err,items){
-                    res.render("home",{status:status,previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
+                User.aggregate([{$match:{name:mainUsername}},{$project:{listItems:{$filter:{input:"$listItems",as:"items",cond:{$in:["$$items.checked",[true]]}}}}}]).exec(function(err,items){
+                    if(err){
+                        console.log(err);
+                    }
+                    else{
+                        res.render("home",{mainUsername:mainUsername,status:status,previous:req.params.itemTitle,clicked:itemTag,items:items[0].listItems, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
+                    }
                 });
-                // Item.find({checked:true}, function (err, items) {
-                //     res.render("home",{status:status,previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
-                // });
             }
             else{
-                User.find({name:mainUsername},{$query:{ listItems: {date:itemTag,checked:true}}},function(err,items){
-                    res.render("home",{status:status,previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
+                User.aggregate([{$match:{name:mainUsername}},{$project:{listItems:{$filter:{input:"$listItems",as:"items",cond:{$in:["$$items.checked",[true]],$in:["$$items.date",[itemTag]]}}}}}]).exec(function(err,items){
+                    if(err){
+                        console.log(err);
+                    }
+                    else{
+                        res.render("home",{mainUsername:mainUsername,status:status,previous:req.params.itemTitle,clicked:itemTag,items:items[0].listItems, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
+                    }
                 });
-                // Item.find({date:itemTag,checked:true}, function (err, items) {
-                //     res.render("home",{status:status,previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
-                // });
             }
         }
     }
     else if(status==="todo"){ 
         if(itemTag==="Home" || itemTag==="Office" || itemTag==="Personal"){
-            User.find({name:mainUsername},{$query:{ listItems: {tag:itemTag,checked:false}}},function(err,items){
-                res.render("home",{status:status,previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
+            User.aggregate([{$match:{name:mainUsername}},{$project:{listItems:{$filter:{input:"$listItems",as:"items",cond:{$in:["$$items.tag",[itemTag]],$in:["$$items.checked",[false]]}}}}}]).exec(function(err,items){
+                if(err){
+                    console.log(err);
+                }
+                else{
+                    res.render("home",{mainUsername:mainUsername,status:status,previous:req.params.itemTitle,clicked:itemTag,items:items[0].listItems, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
+                }
             });
-            // Item.find({tag:itemTag,checked:false}, function (err, items) {
-            //     res.render("home",{status:status,previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
-            // });
         }
         else{
             if(itemTag==="Archieve"){
-                User.find({name:mainUsername},{$query:{ listItems: {checked:true}}},function(err,items){
-                    count_archive=items.length;
-                    res.render("home",{status:status,previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:items.length, count_yesterday:count_yesterday});
+                User.aggregate([{$match:{name:mainUsername}},{$project:{listItems:{$filter:{input:"$listItems",as:"items",cond:{$in:["$$items.checked",[true]]}}}}}]).exec(function(err,items){
+                    if(err){
+                        console.log(err);
+                    }
+                    else{
+                        count_archive=items.length;
+                        res.render("home",{mainUsername:mainUsername,status:status,previous:req.params.itemTitle,clicked:itemTag,items:items[0].listItems, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:items.length, count_yesterday:count_yesterday});
+                    }
                 });
-                // Item.find({checked:true}, function (err, items) {
-                //     count_archive=items.length;
-                //     res.render("home",{status:status,previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:items.length, count_yesterday:count_yesterday});
-                // });
             }
             else if(itemTag==="All"){
-                User.find({name:mainUsername},{$query:{ listItems: {checked:false}}},function(err,items){
-                    res.render("home",{status:status,previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
+                User.aggregate([{$match:{name:mainUsername}},{$project:{listItems:{$filter:{input:"$listItems",as:"items",cond:{$in:["$$items.checked",[false]]}}}}}]).exec(function(err,items){
+                    if(err){
+                        console.log(err);
+                    }
+                    else{
+                        res.render("home",{mainUsername:mainUsername,status:status,previous:req.params.itemTitle,clicked:itemTag,items:items[0].listItems, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
+                    }
                 });
-                // Item.find({checked:false}, function (err, items) {
-                //     res.render("home",{status:status,previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
-                // });
             }
             else{
-                User.find({name:mainUsername},{$query:{ listItems: {date:itemTag,checked:false}}},function(err,items){
-                    res.render("home",{status:status,previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
+                User.aggregate([{$match:{name:mainUsername}},{$project:{listItems:{$filter:{input:"$listItems",as:"items",cond:{$in:["$$items.checked",[false]],$in:["$$items.date",[itemTag]]}}}}}]).exec(function(err,items){
+                    if(err){
+                        console.log(err);
+                    }
+                    else{
+                        res.render("home",{mainUsername:mainUsername,status:status,previous:req.params.itemTitle,clicked:itemTag,items:items[0].listItems, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
+                    }
                 });
-                // Item.find({date:itemTag,checked:false}, function (err, items) {
-                //     res.render("home",{status:status,previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
-                // });
             }
         }
     }
     else{
         if(itemTag==="Home" || itemTag==="Office" || itemTag==="Personal"){
-            User.find({name:mainUsername},{$query:{ listItems: {tag:itemTag}}},function(err,items){
-                res.render("home",{status:status,previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
+            User.aggregate([{$match:{name:mainUsername}},{$project:{listItems:{$filter:{input:"$listItems",as:"items",cond:{$in:["$$items.tag",[itemTag]]}}}}}]).exec(function(err,items){
+                if(err){
+                    console.log(err);
+                }
+                else{
+                    res.render("home",{mainUsername:mainUsername,status:status,previous:req.params.itemTitle,clicked:itemTag,items:items[0].listItems, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
+                }
             });
-            // Item.find({tag:itemTag}, function (err, items) {
-            //     res.render("home",{status:status,previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
-            // });
         }
         else{
             if(itemTag==="Archieve"){
-                User.find({name:mainUsername},{$query:{ listItems: {checked:true}}},function(err,items){
-                    count_archive=items.length;
-                    res.render("home",{status:status,previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:items.length, count_yesterday:count_yesterday});
+                User.aggregate([{$match:{name:mainUsername}},{$project:{listItems:{$filter:{input:"$listItems",as:"items",cond:{$in:["$$items.checked",[true]]}}}}}]).exec(function(err,items){
+                    if(err){
+                        console.log(err);
+                    }
+                    else{
+                        count_archive=items.length;
+                        res.render("home",{mainUsername:mainUsername,status:status,previous:req.params.itemTitle,clicked:itemTag,items:items[0].listItems, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:items.length, count_yesterday:count_yesterday});
+                    }
                 });
-                // Item.find({checked:true}, function (err, items) {
-                //     count_archive=items.length;
-                //     res.render("home",{status:status,previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:items.length, count_yesterday:count_yesterday});
-                // });
             }
             else if(itemTag==="All"){
-                User.find({name:mainUsername},{$query:{ listItems: {}}},function(err,items){
-                    res.render("home",{status:status,previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
+                User.aggregate([{$match:{name:mainUsername}},{$project:{listItems:{$filter:{input:"$listItems",as:"items",cond:{}}}}}]).exec(function(err,items){
+                    if(err){
+                        console.log(err);
+                    }
+                    else{
+                        res.render("home",{mainUsername:mainUsername,status:status,previous:req.params.itemTitle,clicked:itemTag,items:items[0].listItems, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
+                    }
                 });
-                // Item.find({}, function (err, items) {
-                //     res.render("home",{status:status,previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
-                // });
             }
             else{
-                User.find({name:mainUsername},{$query:{ listItems: {date:itemTag}}},function(err,items){
-                    res.render("home",{status:status,previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
+                User.aggregate([{$match:{name:mainUsername}},{$project:{listItems:{$filter:{input:"$listItems",as:"items",cond:{$in:["$$items.date",[itemTag]]}}}}}]).exec(function(err,items){
+                    if(err){
+                        console.log(err);
+                    }
+                    else{
+                        res.render("home",{mainUsername:mainUsername,status:status,previous:req.params.itemTitle,clicked:itemTag,items:items[0].listItems, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
+                    }
                 });
-                // Item.find({date:itemTag}, function (err, items) {
-                //     res.render("home",{status:status,previous:req.params.itemTitle,clicked:itemTag,items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
-                // });
             }
         }
     }
@@ -400,44 +439,54 @@ app.post("/delete", function (req, res) {
             res.redirect('back');
         }
     });
-    // Item.findByIdAndRemove(item_id, function (err) {
-    //     if (err) {
-    //         console.log(err);
-    //     } else {
-    //         console.log("Successfully deleted to database");
-    //     }
-    // });
 });
 
+String.prototype.toObjectId = function() {
+    var ObjectId = (require('mongoose').Types.ObjectId);
+    return new ObjectId(this.toString());
+};
+
 app.post("/update", function (req, res) {
+    const accessToken = req.cookies["access-token"];  
+    const validToken = jwt.verify(accessToken, JWP_SECRET);
+    mainUsername = validToken.name;
     var item_id = req.body.checkInput;
     if(Array.isArray(item_id)){
         count_archive++;
         item_id = item_id[0];
-        Item.find({_id:item_id}, function (err, toUpdate) {
-            Item.findOneAndUpdate({_id:item_id},{checked:!toUpdate[0].checked},function (err) {
-                if (err) {
-                    console.log(err);
-                } else {
-                    console.log("Successfully updated to database");
-                }
-            });
+        User.find({name:mainUsername, "listItems._id": item_id.toObjectId()},function(err,toUpdate){
+            if(err){
+                console.log(err);
+            }
+            else{
+                User.findOneAndUpdate({name:mainUsername},{$set:{'listItems.$[outer].checked': !toUpdate[0].listItems.checked }},{ "arrayFilters" : [{"outer._id":item_id }]},function(err){
+                    if (err) {
+                        console.log(err);
+                    } else {
+                        console.log("Successfully updated to database");
+                    }
+                });
+                res.redirect('back');
+            }
         });
-        res.redirect('back');
     }
     else{
         count_archive--;
-        Item.find({_id:item_id}, function (err, toUpdate) {
-            Item.findOneAndUpdate({_id:item_id},{checked:!toUpdate[0].checked},function (err) {
-                if (err) {
-                    console.log(err);
-                } else {
-                    console.log("Successfully updated to database");
-                }
-            });
+        User.find({name:mainUsername, "listItems._id": item_id.toObjectId()},function(err,toUpdate){
+            if(err){
+                console.log(err);
+            }
+            else{
+                User.findOneAndUpdate({name:mainUsername},{$set:{'listItems.$[outer].checked': !toUpdate[0].listItems[0].checked }},{ "arrayFilters" : [{"outer._id":item_id }]},function(err){
+                    if (err) {
+                        console.log(err);
+                    } else {
+                        console.log("Successfully updated to database");
+                    }
+                });
+                res.redirect('back');
+            }
         });
-        res.redirect('back');
-
     }
 });
 
