@@ -1,5 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter&family=League+Spartan:wght@300&family=Montserrat&family=Roboto&display=swap');
 
+/* ADMIN */
+
 .left a{
     text-decoration: none;
 }
@@ -17,6 +19,47 @@
 .mainPageHeaderForm{
     margin-left:5px;
 }
+
+.mainPageHeaderAdmin{
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: flex-start;
+}
+
+.user{
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: flex-start;
+}
+
+.mainPageHeaderAdmin h2{
+    font-family: 'Inter', sans-serif;
+    font-style: normal;
+    font-weight: 700;
+    font-size: 18px;
+    line-height: 32px;
+    color: #111827;
+    margin-bottom: 0;
+    margin-top: 25px;
+}
+
+.mainPageHeaderAdmin .form-check{
+    margin-top: 15px;
+}
+
+.mainPageHeaderAdmin h1{
+    margin-bottom: 0 !important;
+}
+
+.report span{
+    margin-left: 5px;
+}
+.report .col{
+    color: deepskyblue;
+}
+
 
 /* NAVBAR */
 

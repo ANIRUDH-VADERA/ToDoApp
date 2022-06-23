@@ -1,0 +1,41 @@
+<%- include('partials/adminHeader') %>
+<div class="home">
+  <%- include('partials/adminSidebar') %>
+  <div class="right">
+    <div class="mainPageHeaderAdmin">
+      <h1>To Do Enteries of All Users</h1>
+      <% items.map((item)=>{ %>
+      <div class="user">
+        <h2><%= item.name %></h2>
+        <% item.items.map((userItem)=>{ %> 
+          <div class="form-check" data-bs-toggle="tooltip" data-bs-placement="top" title="<%= userItem.tag %>">
+            <form class="mainForm" >
+              <input 
+                type="hidden" 
+                name="checkInput" 
+                value="<%= userItem._id %>">
+              <input
+                class="form-check-input toDo"
+                type="checkbox"
+                name="checkInput"
+                value="<%= userItem._id %>"
+                disabled
+                id="toDo"
+                <% if(userItem.checked){ %>
+                  checked
+               <% } %>
+              ></input>
+              <label class="form-check-label" for="toDo" name="checkValue"
+              value=<%= userItem.checked %>>
+                <%= userItem.content %>
+                <span class="date <%= userItem.date %>"><%= userItem.date %></span>
+              </label>
+            </form>
+          </div>
+        <% }) %> 
+      </div>
+      <% }) %>
+    </div>
+  </div>
+</div>
+<%- include('partials/adminFooter') %>

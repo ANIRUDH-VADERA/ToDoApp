@@ -1,0 +1,23 @@
+<%- include('partials/adminHeader') %>
+<div class="home">
+  <%- include('partials/adminSidebar') %>
+  <div class="right report">
+    <h1>Current Day :<span class="col"><%= currentDay %> </span></h1>
+    <h1>
+      Number Of Added Enteries in last 7 days :<span class="col"
+        ><%= count_last7 %></span
+      >
+    </h1>
+    <h1>
+      Number Of Added Enteries in the week before :<span class="col"
+        ><%= count_last7_before %></span
+      >
+    </h1>
+    <h1>
+      Average Number of Enteries added in last 7 days :<span class="col"
+        ><%= count_average %></span
+      >
+    </h1>
+  </div>
+</div>
+<%- include('partials/adminFooter') %>

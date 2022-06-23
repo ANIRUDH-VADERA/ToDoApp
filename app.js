@@ -9,9 +9,10 @@ const bcrypt = require('bcrypt');
 const saltRounds = 10;
 const app = express();
 const cookieParser = require("cookie-parser");
-const { createTokens, validateToken } = require("./JWT");
+const { createTokens, validateToken, verifyRoles} = require("./JWT");
 const jwt = require('jsonwebtoken');
 const JWP_SECRET = process.env.JWP_SECRET;
+const ROLES_LIST = require("./roles_list.js");
 
 app.use(express.static(__dirname + '/public'));
 app.set('view engine', 'ejs');
@@ -34,7 +35,7 @@ var dd;
 var yyyy;
 
 let mainUsername;
-
+let role;
 mongoose.connect("mongodb://localhost:27017/internDB", {useNewUrlParser: true, useUnifiedTopology: true});
 
 const itemsSchema = new mongoose.Schema({
@@ -50,17 +51,37 @@ const Item = mongoose.model('Item', itemsSchema);
 const userSchema =  new mongoose.Schema({
     name: {type: String, required: true,unique: true},
     password: {type: String, required: true},
+    roles:{
+        User:Number,
+        Admin:Number
+    },
     listItems: [itemsSchema]
 });
 
 const User = mongoose.model('User', userSchema);
 
+String.prototype.toObjectId = function() {
+    var ObjectId = (require('mongoose').Types.ObjectId);
+    return new ObjectId(this.toString());
+};
+
 
 
 app.get("/mainPage",validateToken,function(req,res){
-        const accessToken = req.cookies["access-token"];  
-        const validToken = jwt.verify(accessToken, JWP_SECRET);
-        mainUsername = validToken.name;
+        mainUsername = req.mainUsername;
+        role = req.roles;
+        if(role[0]===null){
+            role = role[1];
+        }
+        else{
+            role = role[0];
+        }
+        if(role===5150){
+            role = "Admin"
+        }
+        else{
+            role = "User"
+        }
         today = new Date();
         dd = String(today.getDate()).padStart(2, '0');
         mm = String(today.getMonth() + 1).padStart(2, '0');
@@ -89,7 +110,7 @@ app.get("/mainPage",validateToken,function(req,res){
             count_all = items.length;
             items.map((item)=>{
                 if(item.realDate===today){
-                    User.findOneAndUpdate({name:mainUsername},{$set:{'listItems.$[outer].date': "Today" }},{ "arrayFilters" : [{"outer._id":item._id }]},function(err){
+                    User.updateOne({name:mainUsername,"listItems._id":(item._id)},{$set:{'listItems.$.date': "Today" }},{},function(err){
                         if (err) {
                             console.log(err);
                         } else {
@@ -98,7 +119,7 @@ app.get("/mainPage",validateToken,function(req,res){
                     });
                 }
                 else if(item.realDate===tommorow){
-                    User.findOneAndUpdate({name:mainUsername},{$set:{'listItems.$[outer].date': "Tomorrow" }},{ "arrayFilters" : [{"outer._id":item._id }]},function(err){
+                    User.updateOne({name:mainUsername,"listItems._id":(item._id)},{$set:{'listItems.$.date': "Tomorrow" }},{},function(err){
                         if (err) {
                             console.log(err);
                         } else {
@@ -107,7 +128,7 @@ app.get("/mainPage",validateToken,function(req,res){
                     });
                 }
                 else if(item.realDate===yesterday){
-                    User.findOneAndUpdate({name:mainUsername},{$set:{'listItems.$[outer].date': "Yesterday" }},{ "arrayFilters" : [{"outer._id":item._id }]},function(err){
+                    User.updateOne({name:mainUsername,"listItems._id":(item._id)},{$set:{'listItems.$.date': "Yesterday" }},{},function(err){
                         if (err) {
                             console.log(err);
                         } else {
@@ -140,7 +161,7 @@ app.get("/mainPage",validateToken,function(req,res){
                     count_archive++;
                 }
             });
-            res.render("home",{mainUsername:mainUsername,status:"",previous:"/",clicked:"MainPage",items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
+            res.render("home",{role:role,mainUsername:mainUsername,status:"",previous:"/",clicked:"MainPage",items:items, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
         });
 });
 
@@ -157,9 +178,20 @@ app.get("/register",function(req,res){
 });
 
 app.get("/items/:itemTitle",validateToken,function(req,res){
-    const accessToken = req.cookies["access-token"];  
-    const validToken = jwt.verify(accessToken, JWP_SECRET);
-    mainUsername = validToken.name;
+    mainUsername = req.mainUsername;
+    role = req.roles;
+    if(role[0]===null){
+        role = role[1];
+    }
+    else{
+        role = role[0];
+    }
+    if(role===5150){
+        role = "Admin"
+    }
+    else{
+        role = "User"
+    }
     const itemTag = _.capitalize(req.params.itemTitle);
     User.find({name:mainUsername},function(err,foundUser){
         var items = foundUser[0].listItems;
@@ -202,7 +234,7 @@ app.get("/items/:itemTitle",validateToken,function(req,res){
                 console.log(err);
             }
             else{
-                res.render("home",{mainUsername:mainUsername,status:"",previous:req.params.itemTitle,clicked:itemTag,items:items[0].listItems, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
+                res.render("home",{role:role,mainUsername:mainUsername,status:"",previous:req.params.itemTitle,clicked:itemTag,items:items[0].listItems, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
             }
         });
     }
@@ -214,13 +246,13 @@ app.get("/items/:itemTitle",validateToken,function(req,res){
                     console.log(err);
                 }
                 else{
-                    res.render("home",{mainUsername:mainUsername,status:"",previous:req.params.itemTitle,clicked:itemTag,items:items[0].listItems, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
+                    res.render("home",{role:role,mainUsername:mainUsername,status:"",previous:req.params.itemTitle,clicked:itemTag,items:items[0].listItems, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
                 }
             });
         }
         else if(itemTag==="All"){
             User.find({name:mainUsername},function(err,items){
-                res.render("home",{mainUsername:mainUsername,status:"",previous:req.params.itemTitle,clicked:itemTag,items:items[0].listItems, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
+                res.render("home",{role:role,mainUsername:mainUsername,status:"",previous:req.params.itemTitle,clicked:itemTag,items:items[0].listItems, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
             });
         }
         else{
@@ -229,7 +261,7 @@ app.get("/items/:itemTitle",validateToken,function(req,res){
                     console.log(err);
                 }
                 else{
-                    res.render("home",{mainUsername:mainUsername,status:"",previous:req.params.itemTitle,clicked:itemTag,items:items[0].listItems, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
+                    res.render("home",{role:role,mainUsername:mainUsername,status:"",previous:req.params.itemTitle,clicked:itemTag,items:items[0].listItems, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
                 }
             });
         }
@@ -242,6 +274,9 @@ app.post("/register",function(req,res){
         const newUser = new User({
             name: req.body.username,
             password: hash,
+            roles:{
+                User: 2001
+            },
             listItems: []
         });
         newUser.save(function(err){
@@ -262,6 +297,25 @@ app.post("/login",function(req,res){
     const username = req.body.username;
     const password = req.body.password;
 
+    const itemTag = _.capitalize(req.params.itemTitle);
+    const status = req.body.btnradio;
+    const accessToken = req.cookies["access-token"];  
+    const validToken = jwt.verify(accessToken, JWP_SECRET);
+    mainUsername = validToken.name;
+    role = validToken.roles;
+    if(role[0]===null){
+        role = role[1];
+    }
+    else{
+        role = role[0];
+    }
+    if(role===5150){
+        role = "Admin"
+    }
+    else{
+        role = "User"
+    }
+
     User.findOne({name: username},function(err,foundUser){
         if(err){
             console.log(err);
@@ -274,7 +328,12 @@ app.post("/login",function(req,res){
                             maxAge: 60 * 60 * 24 * 30 * 1000,
                             httpOnly: true,
                         });
-                        res.redirect("/mainPage");
+                        if(role==="Admin"){
+                            res.redirect("/admin");
+                        }
+                        else{
+                            res.redirect("/mainPage");
+                        }
                     }
                     else{
                         res.send("Incorrect password");
@@ -292,46 +351,48 @@ app.post("/items/:itemTitle",function(req,res){
     const accessToken = req.cookies["access-token"];  
     const validToken = jwt.verify(accessToken, JWP_SECRET);
     mainUsername = validToken.name;
+    role = validToken.roles;
+    if(role[0]===null){
+        role = role[1];
+    }
+    else{
+        role = role[0];
+    }
+    if(role===5150){
+        role = "Admin"
+    }
+    else{
+        role = "User"
+    }
     if(status==="completed"){
         if(itemTag==="Home" || itemTag==="Office" || itemTag==="Personal"){
-            User.aggregate([{$match:{name:mainUsername}},{$project:{listItems:{$filter:{input:"$listItems",as:"items",cond:{$in:["$$items.tag",[itemTag]],$in:["$$items.checked",[true]]}}}}}]).exec(function(err,items){
+            User.aggregate([{$match:{name:mainUsername}},{$project:{listItems:{$filter:{input:"$listItems",as:"items",cond:{$in:["$$items.tag",[itemTag]]}}}}},{$project:{listItems:{$filter:{input:"$listItems",as:"items",cond:{$in:["$$items.checked",[true]]}}}}}]).exec(function(err,items){
                 if(err){
                     console.log(err);
                 }
                 else{
-                    res.render("home",{mainUsername:mainUsername,status:status,previous:req.params.itemTitle,clicked:itemTag,items:items[0].listItems, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
+                    res.render("home",{role:role,mainUsername:mainUsername,status:status,previous:req.params.itemTitle,clicked:itemTag,items:items[0].listItems, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
                 }
             });
         }
         else{
-            if(itemTag==="Archieve"){
+            if(itemTag==="All"){
                 User.aggregate([{$match:{name:mainUsername}},{$project:{listItems:{$filter:{input:"$listItems",as:"items",cond:{$in:["$$items.checked",[true]]}}}}}]).exec(function(err,items){
                     if(err){
                         console.log(err);
                     }
                     else{
-                        count_archive=items.length;
-                        res.render("home",{mainUsername:mainUsername,status:status,previous:req.params.itemTitle,clicked:itemTag,items:items[0].listItems, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:items.length, count_yesterday:count_yesterday});
-                    }
-                });
-            }
-            else if(itemTag==="All"){
-                User.aggregate([{$match:{name:mainUsername}},{$project:{listItems:{$filter:{input:"$listItems",as:"items",cond:{$in:["$$items.checked",[true]]}}}}}]).exec(function(err,items){
-                    if(err){
-                        console.log(err);
-                    }
-                    else{
-                        res.render("home",{mainUsername:mainUsername,status:status,previous:req.params.itemTitle,clicked:itemTag,items:items[0].listItems, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
+                        res.render("home",{role:role,mainUsername:mainUsername,status:status,previous:req.params.itemTitle,clicked:itemTag,items:items[0].listItems, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
                     }
                 });
             }
             else{
-                User.aggregate([{$match:{name:mainUsername}},{$project:{listItems:{$filter:{input:"$listItems",as:"items",cond:{$in:["$$items.checked",[true]],$in:["$$items.date",[itemTag]]}}}}}]).exec(function(err,items){
+                User.aggregate([{$match:{name:mainUsername}},{$project:{listItems:{$filter:{input:"$listItems",as:"items",cond:{$in:["$$items.date",[itemTag]]}}}}},{$project:{listItems:{$filter:{input:"$listItems",as:"items",cond:{$in:["$$items.checked",[true]]}}}}}]).exec(function(err,items){
                     if(err){
                         console.log(err);
                     }
                     else{
-                        res.render("home",{mainUsername:mainUsername,status:status,previous:req.params.itemTitle,clicked:itemTag,items:items[0].listItems, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
+                        res.render("home",{role:role,mainUsername:mainUsername,status:status,previous:req.params.itemTitle,clicked:itemTag,items:items[0].listItems, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
                     }
                 });
             }
@@ -339,44 +400,33 @@ app.post("/items/:itemTitle",function(req,res){
     }
     else if(status==="todo"){ 
         if(itemTag==="Home" || itemTag==="Office" || itemTag==="Personal"){
-            User.aggregate([{$match:{name:mainUsername}},{$project:{listItems:{$filter:{input:"$listItems",as:"items",cond:{$in:["$$items.tag",[itemTag]],$in:["$$items.checked",[false]]}}}}}]).exec(function(err,items){
+            User.aggregate([{$match:{name:mainUsername}},{$project:{listItems:{$filter:{input:"$listItems",as:"items",cond:{$in:["$$items.tag",[itemTag]]}}}}},{$project:{listItems:{$filter:{input:"$listItems",as:"items",cond:{$in:["$$items.checked",[false]]}}}}}]).exec(function(err,items){
                 if(err){
                     console.log(err);
                 }
                 else{
-                    res.render("home",{mainUsername:mainUsername,status:status,previous:req.params.itemTitle,clicked:itemTag,items:items[0].listItems, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
+                    res.render("home",{role:role,mainUsername:mainUsername,status:status,previous:req.params.itemTitle,clicked:itemTag,items:items[0].listItems, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
                 }
             });
         }
         else{
-            if(itemTag==="Archieve"){
-                User.aggregate([{$match:{name:mainUsername}},{$project:{listItems:{$filter:{input:"$listItems",as:"items",cond:{$in:["$$items.checked",[true]]}}}}}]).exec(function(err,items){
-                    if(err){
-                        console.log(err);
-                    }
-                    else{
-                        count_archive=items.length;
-                        res.render("home",{mainUsername:mainUsername,status:status,previous:req.params.itemTitle,clicked:itemTag,items:items[0].listItems, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:items.length, count_yesterday:count_yesterday});
-                    }
-                });
-            }
-            else if(itemTag==="All"){
+            if(itemTag==="All"){
                 User.aggregate([{$match:{name:mainUsername}},{$project:{listItems:{$filter:{input:"$listItems",as:"items",cond:{$in:["$$items.checked",[false]]}}}}}]).exec(function(err,items){
                     if(err){
                         console.log(err);
                     }
                     else{
-                        res.render("home",{mainUsername:mainUsername,status:status,previous:req.params.itemTitle,clicked:itemTag,items:items[0].listItems, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
+                        res.render("home",{role:role,mainUsername:mainUsername,status:status,previous:req.params.itemTitle,clicked:itemTag,items:items[0].listItems, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
                     }
                 });
             }
             else{
-                User.aggregate([{$match:{name:mainUsername}},{$project:{listItems:{$filter:{input:"$listItems",as:"items",cond:{$in:["$$items.checked",[false]],$in:["$$items.date",[itemTag]]}}}}}]).exec(function(err,items){
+                User.aggregate([{$match:{name:mainUsername}},{$project:{listItems:{$filter:{input:"$listItems",as:"items",cond:{$in:["$$items.date",[itemTag]]}}}}},{$project:{listItems:{$filter:{input:"$listItems",as:"items",cond:{$in:["$$items.checked",[false]]}}}}}]).exec(function(err,items){
                     if(err){
                         console.log(err);
                     }
                     else{
-                        res.render("home",{mainUsername:mainUsername,status:status,previous:req.params.itemTitle,clicked:itemTag,items:items[0].listItems, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
+                        res.render("home",{role:role,mainUsername:mainUsername,status:status,previous:req.params.itemTitle,clicked:itemTag,items:items[0].listItems, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
                     }
                 });
             }
@@ -389,29 +439,18 @@ app.post("/items/:itemTitle",function(req,res){
                     console.log(err);
                 }
                 else{
-                    res.render("home",{mainUsername:mainUsername,status:status,previous:req.params.itemTitle,clicked:itemTag,items:items[0].listItems, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
+                    res.render("home",{role:role,mainUsername:mainUsername,status:status,previous:req.params.itemTitle,clicked:itemTag,items:items[0].listItems, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
                 }
             });
         }
         else{
-            if(itemTag==="Archieve"){
-                User.aggregate([{$match:{name:mainUsername}},{$project:{listItems:{$filter:{input:"$listItems",as:"items",cond:{$in:["$$items.checked",[true]]}}}}}]).exec(function(err,items){
-                    if(err){
-                        console.log(err);
-                    }
-                    else{
-                        count_archive=items.length;
-                        res.render("home",{mainUsername:mainUsername,status:status,previous:req.params.itemTitle,clicked:itemTag,items:items[0].listItems, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:items.length, count_yesterday:count_yesterday});
-                    }
-                });
-            }
-            else if(itemTag==="All"){
+            if(itemTag==="All"){
                 User.aggregate([{$match:{name:mainUsername}},{$project:{listItems:{$filter:{input:"$listItems",as:"items",cond:{}}}}}]).exec(function(err,items){
                     if(err){
                         console.log(err);
                     }
                     else{
-                        res.render("home",{mainUsername:mainUsername,status:status,previous:req.params.itemTitle,clicked:itemTag,items:items[0].listItems, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
+                        res.render("home",{role:role,mainUsername:mainUsername,status:status,previous:req.params.itemTitle,clicked:itemTag,items:items[0].listItems, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
                     }
                 });
             }
@@ -421,7 +460,7 @@ app.post("/items/:itemTitle",function(req,res){
                         console.log(err);
                     }
                     else{
-                        res.render("home",{mainUsername:mainUsername,status:status,previous:req.params.itemTitle,clicked:itemTag,items:items[0].listItems, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
+                        res.render("home",{role:role,mainUsername:mainUsername,status:status,previous:req.params.itemTitle,clicked:itemTag,items:items[0].listItems, count_all:count_all, count_home:count_home, count_office:count_office, count_personal:count_personal, count_today:count_today, count_tomorrow:count_tomorrow, count_archive:count_archive, count_yesterday:count_yesterday});
                     }
                 });
             }
@@ -441,56 +480,67 @@ app.post("/delete", function (req, res) {
     });
 });
 
-String.prototype.toObjectId = function() {
-    var ObjectId = (require('mongoose').Types.ObjectId);
-    return new ObjectId(this.toString());
-};
 
 app.post("/update", function (req, res) {
     const accessToken = req.cookies["access-token"];  
     const validToken = jwt.verify(accessToken, JWP_SECRET);
     mainUsername = validToken.name;
+    role = validToken.roles;
+    if(role[0]===null){
+        role = role[1];
+    }
+    else{
+        role = role[0];
+    }
+    if(role===5150){
+        role = "Admin"
+    }
+    else{
+        role = "User"
+    }
     var item_id = req.body.checkInput;
     if(Array.isArray(item_id)){
         count_archive++;
         item_id = item_id[0];
-        User.find({name:mainUsername, "listItems._id": item_id.toObjectId()},function(err,toUpdate){
-            if(err){
-                console.log(err);
-            }
-            else{
-                User.findOneAndUpdate({name:mainUsername},{$set:{'listItems.$[outer].checked': !toUpdate[0].listItems.checked }},{ "arrayFilters" : [{"outer._id":item_id }]},function(err){
-                    if (err) {
-                        console.log(err);
-                    } else {
-                        console.log("Successfully updated to database");
-                    }
-                });
-                res.redirect('back');
-            }
-        });
     }
     else{
         count_archive--;
-        User.find({name:mainUsername, "listItems._id": item_id.toObjectId()},function(err,toUpdate){
-            if(err){
-                console.log(err);
-            }
-            else{
-                User.findOneAndUpdate({name:mainUsername},{$set:{'listItems.$[outer].checked': !toUpdate[0].listItems[0].checked }},{ "arrayFilters" : [{"outer._id":item_id }]},function(err){
-                    if (err) {
-                        console.log(err);
-                    } else {
-                        console.log("Successfully updated to database");
-                    }
-                });
-                res.redirect('back');
-            }
-        });
     }
+    User.find({name:mainUsername},{listItems:{$elemMatch:{_id:item_id.toObjectId()}}},function(err,toUpdate){
+        if(err){
+            console.log(err);
+        }
+        else{
+            User.updateOne({name:mainUsername,"listItems._id":item_id.toObjectId()},{$set:{'listItems.$.checked': !toUpdate[0].listItems[0].checked }},{},function(err,found){
+                if (err) {
+                    console.log(err);
+                } else {
+                    console.log("Successfully updated to database");
+                }
+            });
+            res.redirect('back');
+        }
+    });
 });
 
 app.post("/mainPage",function(req,res){
+    mainUsername = req.mainUsername;
+    const accessToken = req.cookies["access-token"];  
+    const validToken = jwt.verify(accessToken, JWP_SECRET);
+    mainUsername = validToken.name;
+    role = validToken.roles;
+    if(role[0]===null){
+        role = role[1];
+    }
+    else{
+        role = role[0];
+    }
+    if(role===5150){
+        role = "Admin"
+    }
+    else{
+        role = "User"
+    }
     today = new Date();
     dd = String(today.getDate()).padStart(2, '0');
     mm = String(today.getMonth() + 1).padStart(2, '0');
@@ -535,9 +585,9 @@ app.post("/mainPage",function(req,res){
                 }
                 else{
                     console.log("Successfully added to database");
+                    res.redirect("back");
                 }
             });
-            res.redirect("back");
         });
     }
     if(req.body.personal){
@@ -556,9 +606,9 @@ app.post("/mainPage",function(req,res){
                 }
                 else{
                     console.log("Successfully added to database");
+                    res.redirect("back");
                 }
             });
-            res.redirect("back");
         });
     }
     if(req.body.office){
@@ -577,11 +627,96 @@ app.post("/mainPage",function(req,res){
                 }
                 else{
                     console.log("Successfully added to database");
+                    res.redirect("back");
                 }
             });
-            res.redirect("back");
         });
     }
+});
+
+
+// For Admin 
+
+app.get("/admin",validateToken,verifyRoles(ROLES_LIST.Admin),function(req,res){
+    mainUsername = req.mainUsername;
+    role = req.roles;
+    if(role[0]===null){
+        role = role[1];
+    }
+    else{
+        role = role[0];
+    }
+    if(role===5150){
+        role = "Admin"
+    }
+    else{
+        role = "User"
+    }
+    var tempList = [];
+    User.find({},function(err,users){
+        users.map((user)=>{
+            if(user.roles.User){
+                User.find({name:user.name},function(err,foundUser){
+                    var tempObj = {
+                        name : user.name,
+                        items: foundUser[0].listItems
+                    };
+                    tempList.push(tempObj);
+                });
+            }
+        });
+        setTimeout(()=>{
+            res.render("admin",{mainUsername:mainUsername,role:role,clicked:"No",items:tempList});
+        },1000);
+    });
+});
+
+app.get("/admin/report",validateToken,verifyRoles(ROLES_LIST.Admin),function(req,res){
+    mainUsername = req.mainUsername;
+    role = req.roles;
+    if(role[0]===null){
+        role = role[1];
+    }
+    else{
+        role = role[0];
+    }
+    if(role===5150){
+        role = "Admin"
+    }
+    else{
+        role = "User"
+    }
+    today = new Date();
+    dd = String(today.getDate()).padStart(2, '0');
+    mm = String(today.getMonth() + 1).padStart(2, '0');
+    yyyy = today.getFullYear();
+    today = yyyy + '-' + mm + '-' + dd;
+    var count_last7 = 0;
+    var count_last7_before = 0;
+    var count_average;
+    var date = new Date();
+    var d1 = new Date(today);
+    var d3 = new Date(date.getTime() - (7 * 24 * 60 * 60 * 1000));
+    var d4 = new Date(date.getTime() - (14 * 24 * 60 * 60 * 1000));
+    User.find({},function(err,foundUsers){
+        foundUsers.map((user)=>{
+            User.find({name:user.name},function(err,foundUser){
+                foundUser[0].listItems.map((item)=>{
+                    var d2 = new Date(item.realDate);
+                    if(d2<=d1 && d2>=d3){
+                        count_last7++;
+                    }
+                    if(d2<=d3 && d2>=d4){
+                        count_last7_before++;
+                    }
+                });
+            });
+        });
+    });
+    setTimeout(()=>{
+        count_average = count_last7/7;
+        res.render("report",{count_average:count_average,count_last7:count_last7,count_last7_before:count_last7_before,currentDay:today,mainUsername:mainUsername,role:role,clicked:"Yes"});
+    },1000)
 });
 
 // Listening on Port 3000
