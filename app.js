@@ -296,25 +296,10 @@ app.post("/register",function(req,res){
 app.post("/login",function(req,res){
     const username = req.body.username;
     const password = req.body.password;
-
     const itemTag = _.capitalize(req.params.itemTitle);
     const status = req.body.btnradio;
     const accessToken = req.cookies["access-token"];  
     const validToken = jwt.verify(accessToken, JWP_SECRET);
-    mainUsername = validToken.name;
-    role = validToken.roles;
-    if(role[0]===null){
-        role = role[1];
-    }
-    else{
-        role = role[0];
-    }
-    if(role===5150){
-        role = "Admin"
-    }
-    else{
-        role = "User"
-    }
 
     User.findOne({name: username},function(err,foundUser){
         if(err){
@@ -328,7 +313,9 @@ app.post("/login",function(req,res){
                             maxAge: 60 * 60 * 24 * 30 * 1000,
                             httpOnly: true,
                         });
-                        if(role==="Admin"){
+                        mainUsername = foundUser.name;
+                        role = foundUser.roles;
+                        if(role.Admin===5150){
                             res.redirect("/admin");
                         }
                         else{
@@ -480,6 +467,60 @@ app.post("/delete", function (req, res) {
     });
 });
 
+
+app.delete("/delete", function (req, res) {
+    var item_id = req.body.deleteItem;
+    User.findOneAndUpdate({name:mainUsername},{ $pull: { listItems: { _id: item_id } } },function(err,foundList){
+        if(err){
+            res.send(err);
+        }
+        else{
+            res.redirect('back');
+        }
+    });
+});
+
+app.patch("/update", function (req, res) {
+    const accessToken = req.cookies["access-token"];  
+    const validToken = jwt.verify(accessToken, JWP_SECRET);
+    mainUsername = validToken.name;
+    role = validToken.roles;
+    if(role[0]===null){
+        role = role[1];
+    }
+    else{
+        role = role[0];
+    }
+    if(role===5150){
+        role = "Admin"
+    }
+    else{
+        role = "User"
+    }
+    var item_id = req.body.checkInput;
+    if(Array.isArray(item_id)){
+        count_archive++;
+        item_id = item_id[0];
+    }
+    else{
+        count_archive--;
+    }
+    User.find({name:mainUsername},{listItems:{$elemMatch:{_id:item_id.toObjectId()}}},function(err,toUpdate){
+        if(err){
+            console.log(err);
+        }
+        else{
+            User.updateOne({name:mainUsername,"listItems._id":item_id.toObjectId()},{$set:{'listItems.$.checked': !toUpdate[0].listItems[0].checked }},{},function(err,found){
+                if (err) {
+                    console.log(err);
+                } else {
+                    console.log("Successfully updated to database");
+                }
+            });
+            res.redirect('back');
+        }
+    });
+});
 
 app.post("/update", function (req, res) {
     const accessToken = req.cookies["access-token"];  
