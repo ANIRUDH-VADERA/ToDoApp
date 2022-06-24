@@ -7,3 +7,4 @@ A Simple To Do App with backend connectivity
 5.	PORT=3000(your localhost portno)
 6.	JWP_SECRET=asdhasoid(Your jwp secret for getting jwp token)
 7.	Type nodemon app.js and navigate to localhost:3000 to view project
+8.  You will be required to locally run your mongo host server as well.
